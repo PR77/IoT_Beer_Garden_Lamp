@@ -98,7 +98,7 @@ void handleRoot(void) {
 }
 
 void handleFileList(void) {
-    // curl -X GET 192.168.2.116/list
+    // curl -X GET IoTBeerGarden.local/list
 
     String path = "/";
     String directoryList = "[";
@@ -120,7 +120,7 @@ void handleFileList(void) {
 }
 
 void handleFileUpload(void) {
-    // curl -X POST -F "file=@SomeFile.EXT" 192.168.2.116/upload
+    // curl -X POST -F "file=@SomeFile.EXT" IoTBeerGarden.local/upload
 
     HTTPUpload& upload = httpServer.upload();
 
@@ -289,7 +289,7 @@ void setup() {
         SPIFFS.format();
         httpServer.send(200, "text/plain", "{\"success\":1}");
     });
-    httpServer.onNotFound(handleWebRequests); //Set setver all paths are not found so we can handle as per URI
+    httpServer.onNotFound(handleWebRequests);
 
     webSocket.onEvent(webSocketEvent);
 }
