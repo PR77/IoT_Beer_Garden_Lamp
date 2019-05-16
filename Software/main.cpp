@@ -19,7 +19,7 @@ const char* password = "...";
 //=============================================================================
 // Global constants for WS2182 interface
 //=============================================================================
-const uint16_t PixelCount = 1;
+const uint16_t PixelCount = 5;
 const uint8_t PixelPin = 2;
 
 //=============================================================================
@@ -38,6 +38,7 @@ NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1800KbpsMethod> strip(PixelCount, Pixel
 RgbColor red(255, 0, 0);
 RgbColor green(0, 255, 0);
 RgbColor blue(0, 0, 255);
+RgbColor black(0, 0, 0);
 
 //==============================================================
 // Function prototypes
@@ -178,20 +179,56 @@ void handleWebRequests(void) {
 //==============================================================
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     switch (type) {
-        case WStype_DISCONNECTED:
-            // if the websocket is disconnected
+        case WStype_DISCONNECTED: {
+            // if the websocket is disconnected save the last selected colour
+            HtmlColor colourToSave;
+            char htmlColourString[10];
+            File fsColourFile;
+            uint8_t length;
+
+            colourToSave = HtmlColor(strip.GetPixelColor(0));
+            fsColourFile = SPIFFS.open("/lastColour.txt", "w");
+            length = colourToSave.ToNumericalString(htmlColourString, sizeof(htmlColourString));
+
+            if (length != 0 && fsColourFile) {
+                fsColourFile.write(htmlColourString, length);
+                fsColourFile.close();
+
+                Serial.printf("Saving last selected colour: %s\n", htmlColourString);
+            }
+
             Serial.printf("[%u] Disconnected!\n", num);
+        }
         break;
 
         case WStype_CONNECTED: {
-            // if a new websocket connection is established
-            HtmlColor colourArgument;
+            // if a new websocket connection is established restore last selected colour
+            HtmlColor colourArgument = HtmlColor();
+            File fsColourFile;
             char htmlColourString[10];
 
             IPAddress ip = webSocket.remoteIP(num);
             Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
 
-            colourArgument = HtmlColor(strip.GetPixelColor(0));
+            fsColourFile = SPIFFS.open("/lastColour.txt", "r");
+
+            if (fsColourFile) {
+                fsColourFile.readBytes(htmlColourString, sizeof(htmlColourString));
+                fsColourFile.close();
+
+                colourArgument.Parse<HtmlColorNames>(htmlColourString);
+
+                strip.SetPixelColor(0, colourArgument);
+                strip.SetPixelColor(1, colourArgument);
+                strip.SetPixelColor(2, colourArgument);
+                strip.SetPixelColor(3, colourArgument);
+                strip.SetPixelColor(4, colourArgument);
+                strip.Show();
+
+                Serial.printf("Restoring last selected colour: %s\n", htmlColourString);
+            } else {
+                colourArgument = HtmlColor(strip.GetPixelColor(0));
+            }
 
             if (colourArgument.ToNumericalString(htmlColourString, sizeof(htmlColourString))) {
                 Serial.printf("Sending colourArgument: %s\n", htmlColourString);
@@ -201,7 +238,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         break;
 
         case WStype_TEXT: {
-            // if new text data is received
+            // if new text data is received for a HTML formatted pixel colour
             String colourArgument = (const char *)payload;
             Serial.printf("[%u] get Text: %s\n", num, payload);
 
@@ -210,6 +247,10 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 pixelColour.Parse<HtmlColorNames>(colourArgument);
 
                 strip.SetPixelColor(0, pixelColour);
+                strip.SetPixelColor(1, pixelColour);
+                strip.SetPixelColor(2, pixelColour);
+                strip.SetPixelColor(3, pixelColour);
+                strip.SetPixelColor(4, pixelColour);
                 strip.Show();
             }
         }
@@ -239,8 +280,6 @@ void setup() {
 
     // this resets all the neopixels to an off state
     strip.Begin();
-    strip.SetPixelColor(0, red);
-    strip.Show();
 
     //Initialize File System
     SPIFFS.begin();
@@ -265,11 +304,17 @@ void setup() {
     strip.Show();
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
-        delay(200);
+        strip.RotateRight(1);
+        strip.Show();
+        delay(100);
     }
 
     // If connection successful change LED colour to GREEN
-    strip.SetPixelColor(0, green);
+    strip.SetPixelColor(0, black);
+    strip.SetPixelColor(1, black);
+    strip.SetPixelColor(2, black);
+    strip.SetPixelColor(3, black);
+    strip.SetPixelColor(4, green);
     strip.Show();
 
     // If connection successful show IP address in serial monitor
