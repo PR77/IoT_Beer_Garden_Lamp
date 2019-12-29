@@ -24,4 +24,10 @@ In order to hold the actual Beer Garden lamp I constructed a mounting bracket us
 ### Hardware
 The hardware is centred around an ESP-01. In order to get the current to drive the LEDs (either WS2812 or White LED strip) I used an old laptop power supply. As the Beer Garden lamp is positioned next to me garden shed, the power supply is housed inside and only low voltage is supplied to the Beer Garden lamp. Both LED array and ESP hardware is housed in the actual lamp. I used a simple Buck Regulator to drop to 5 volts (WS2812) or 12 volts (White LED strip). A Low Dropout Regulator is used for the ESP-01 3.3 volt needs.
 
+Connection to the LED whether it is WS2812 or White LED strip is documented in the code. In the case of the White LED strip, a N-CH FET is used with a NPN BJT in an open collector (with strong pull-up) arrangement to make sure the FET is operating as close to saturation as possible - the 3.3 volt output of the ESP is on the lower end of the Vgs requirements.
+
 ### Software
+The software is fairly straight forward as it is based around the Arduino Framework. I used Atom with PlatformIO as the development environment. There are several helper functions which I reuse in most of my ESP projects (IoT).
+
+### HTML Front End
+This is not my strong point... :) It is basic and does what I need it to do. I'm open for suggestions and support to make this look much (much) nicer.
